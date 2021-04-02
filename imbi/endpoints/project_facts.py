@@ -13,7 +13,8 @@ class CollectionRequestHandler(base.CollectionRequestHandler):
     NAME = 'project-fact-types'
     ID_KEY = 'project_id'
 
-    COLLECTION_SQL = re.sub(r'\s+', ' ', """\
+    COLLECTION_SQL = re.sub(
+        r'\s+', ' ', """\
         WITH project_type_id AS (SELECT project_type_id AS id
                                    FROM v1.projects
                                   WHERE id = %(project_id)s)
@@ -47,7 +48,8 @@ class CollectionRequestHandler(base.CollectionRequestHandler):
          WHERE (SELECT id FROM project_type_id) = ANY(a.project_type_ids)
         ORDER BY a.name""")
 
-    POST_SQL = re.sub(r'\s+', ' ', """\
+    POST_SQL = re.sub(
+        r'\s+', ' ', """\
         INSERT INTO v1.project_facts
                     (project_id, fact_type_id, recorded_at, recorded_by, value)
              VALUES (%(project_id)s, %(fact_type_id)s, CURRENT_TIMESTAMP,
@@ -58,9 +60,9 @@ class CollectionRequestHandler(base.CollectionRequestHandler):
                         value = %(value)s""")
 
     async def get(self, *args, **kwargs):
-        result = await self.postgres_execute(
-            self.COLLECTION_SQL, self._get_query_kwargs(kwargs),
-            'get-{}'.format(self.NAME))
+        result = await self.postgres_execute(self.COLLECTION_SQL,
+                                             self._get_query_kwargs(kwargs),
+                                             'get-{}'.format(self.NAME))
         self.send_response(common.coerce_project_fact_values(result.rows))
 
     async def post(self, *args, **kwargs):
@@ -69,12 +71,11 @@ class CollectionRequestHandler(base.CollectionRequestHandler):
                 'project_id': kwargs['project_id'],
                 'username': self._current_user.username
             })
-            await self.postgres_execute(
-                self.POST_SQL, fact, 'post-{}'.format(self.NAME))
+            await self.postgres_execute(self.POST_SQL, fact,
+                                        'post-{}'.format(self.NAME))
         self.set_status(204)
 
-    def on_postgres_error(self,
-                          metric_name: str,
+    def on_postgres_error(self, metric_name: str,
                           exc: Exception) -> typing.Optional[Exception]:
         """Invoked when an error occurs when executing a query
 
@@ -89,7 +90,7 @@ class CollectionRequestHandler(base.CollectionRequestHandler):
 
         """
         if isinstance(exc, errors.lookup('P0001')):
-            return problemdetails.Problem(
-                status_code=400, title='Bad Request',
-                detail=str(exc).split('\n')[0])
+            return problemdetails.Problem(status_code=400,
+                                          title='Bad Request',
+                                          detail=str(exc).split('\n')[0])
         super().on_postgres_error(metric_name, exc)

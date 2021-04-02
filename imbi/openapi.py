@@ -16,7 +16,6 @@ LOGGER = logging.getLogger(__name__)
 
 
 class EMailFormatter:
-
     @staticmethod
     def validate(value) -> bool:
         return validators.email(value)
@@ -27,7 +26,6 @@ class EMailFormatter:
 
 
 class ISO8601Formatter:
-
     @staticmethod
     def validate(value) -> bool:
         try:
@@ -42,7 +40,6 @@ class ISO8601Formatter:
 
 
 class URIFormatter:
-
     @staticmethod
     def validate(value) -> bool:
         return validators.url(value)
@@ -56,8 +53,8 @@ def create_spec(spec_dict: dict) -> models.Spec:
     """Create and return the OpenAPI v3 Spec Model"""
     spec_resolver = jsonschema_validators.RefResolver(
         '', spec_dict, handlers=openapi_spec_validator.default_handlers)
-    spec_factory = factories.SpecFactory(
-        spec_resolver, config={'validate_spec': False})
+    spec_factory = factories.SpecFactory(spec_resolver,
+                                         config={'validate_spec': False})
     return spec_factory.create(spec_dict, spec_url='')
 
 
@@ -75,7 +72,8 @@ def request_validator(settings: dict) -> tornado_openapi3.RequestValidator:
             'application/msgpack': umsgpack.unpackb,
             'application/problem+json': json.loads,
             'application/problem+msgpack': umsgpack.unpackb,
-            'application/yaml': yaml.safe_load})
+            'application/yaml': yaml.safe_load
+        })
 
 
 def response_validator(settings: dict) -> tornado_openapi3.ResponseValidator:
@@ -92,14 +90,16 @@ def response_validator(settings: dict) -> tornado_openapi3.ResponseValidator:
             'application/msgpack': umsgpack.unpackb,
             'application/problem+json': json.loads,
             'application/problem+msgpack': umsgpack.unpackb,
-            'application/yaml': yaml.safe_load})
+            'application/yaml': yaml.safe_load
+        })
 
 
 def _render_template(settings: dict) -> dict:
     """Load the template file and render it, replacing any template markup"""
     spec = yaml.safe_load(
-        template.Loader(str(settings['template_path'])).load(
-            'openapi.yaml').generate(**{'settings': settings}))
+        template.Loader(str(
+            settings['template_path'])).load('openapi.yaml').generate(
+                **{'settings': settings}))
     # Remove servers for validation to prevent hostname validation errors
     if 'servers' in spec:
         del spec['servers']

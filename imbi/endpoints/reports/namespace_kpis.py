@@ -9,7 +9,8 @@ class RequestHandler(base.RequestHandler):
 
     NAME = 'reports-kpis'
 
-    SQL = re.sub(r'\s+', ' ', """\
+    SQL = re.sub(
+        r'\s+', ' ', """\
         WITH projects_with_facts AS (
             SELECT a.id, a.namespace_id
               FROM v1.projects AS a
@@ -40,6 +41,6 @@ class RequestHandler(base.RequestHandler):
 
     @web.authenticated
     async def get(self):
-        result = await self.postgres_execute(
-            self.SQL, metric_name='reports-compliance')
+        result = await self.postgres_execute(self.SQL,
+                                             metric_name='reports-compliance')
         self.send_response(result.rows)

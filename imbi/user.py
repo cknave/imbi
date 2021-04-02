@@ -26,8 +26,8 @@ class Group:
         return iter([('name', self.name), ('permissions', self.permissions)])
 
     def __repr__(self):
-        return '<Group name={} permissions={}>'.format(
-            self.name, self.permissions)
+        return '<Group name={} permissions={}>'.format(self.name,
+                                                       self.permissions)
 
 
 class User:
@@ -94,7 +94,8 @@ class User:
                     WHERE users.username = EXCLUDED.username
       RETURNING last_seen_at;"""
 
-    def __init__(self, application,
+    def __init__(self,
+                 application,
                  username: typing.Optional[str] = None,
                  password: typing.Optional[str] = None,
                  token: typing.Optional[str] = None) -> None:
@@ -125,8 +126,8 @@ class User:
         """
         if name == 'password' \
                 and self._application.is_encrypted_value(value):
-            value = self._application.decrypt_value(
-                name, value).decode('utf-8')
+            value = self._application.decrypt_value(name,
+                                                    value).decode('utf-8')
         object.__setattr__(self, name, value)
 
     def as_dict(self) -> dict:
@@ -140,8 +141,8 @@ class User:
             'email_address': self.email_address,
             'display_name': self.display_name,
             'groups': [g.name for g in self.groups],
-            'password': self._application.encrypt_value(
-                'password', self.password),
+            'password':
+            self._application.encrypt_value('password', self.password),
             'permissions': self.permissions,
             'last_refreshed_at': timestamp.isoformat(self.last_refreshed_at)
         }
@@ -189,17 +190,16 @@ class User:
                      self.REFRESH_AFTER, age, self.REFRESH_AFTER < age,
                      self.last_refreshed_at, self.last_seen_at,
                      self.last_refreshed_at < self.last_seen_at)
-        return ((self.REFRESH_AFTER < age) or
-                (self.last_refreshed_at < self.last_seen_at))
+        return ((self.REFRESH_AFTER < age)
+                or (self.last_refreshed_at < self.last_seen_at))
 
     async def update_last_seen_at(self) -> None:
         """Update the last_seen_at column in the database for the user"""
         async with self._application.postgres_connector(
                 on_error=self.on_postgres_error) as conn:
-            result = await conn.execute(
-                self.SQL_UPDATE_LAST_SEEN_AT,
-                {'username': self.username},
-                'user-update-last-seen-at')
+            result = await conn.execute(self.SQL_UPDATE_LAST_SEEN_AT,
+                                        {'username': self.username},
+                                        'user-update-last-seen-at')
             self.last_seen_at = result.row['last_seen_at']
 
     def _assign_values(self, data: dict) -> None:
@@ -213,11 +213,13 @@ class User:
         async with self._application.postgres_connector(
                 on_error=self.on_postgres_error) as conn:
             result = await conn.execute(
-                self.SQL_AUTHENTICATE,
-                {'username': self.username,
-                 'password': self._application.encrypt_value(
-                     'password', self.password) if self.password else None},
-                'user-authenticate')
+                self.SQL_AUTHENTICATE, {
+                    'username':
+                    self.username,
+                    'password':
+                    self._application.encrypt_value('password', self.password)
+                    if self.password else None
+                }, 'user-authenticate')
             if not result.row_count:
                 self._reset()
                 return False
@@ -228,24 +230,24 @@ class User:
         """Return the groups for the user as a list of group objects"""
         async with self._application.postgres_connector(
                 on_error=self.on_postgres_error) as conn:
-            result = await conn.execute(
-                self.SQL_GROUPS, {'username': self.username},
-                'user-groups')
+            result = await conn.execute(self.SQL_GROUPS,
+                                        {'username': self.username},
+                                        'user-groups')
             return [Group(**r) for r in result]
 
     async def _db_refresh(self) -> None:
         """Fetch the latest values from the database"""
         async with self._application.postgres_connector(
                 on_error=self.on_postgres_error) as conn:
-            result = await conn.execute(
-                self.SQL_REFRESH, {'username': self.username},
-                'user-refresh')
+            result = await conn.execute(self.SQL_REFRESH,
+                                        {'username': self.username},
+                                        'user-refresh')
             self._assign_values(result.row)
         self.groups = await self._db_groups()
-        self.permissions = sorted(set(
-            chain.from_iterable([g.permissions for g in self.groups])))
-        self.last_refreshed_at = max(
-            timestamp.utcnow(), self.last_seen_at or timestamp.utcnow())
+        self.permissions = sorted(
+            set(chain.from_iterable([g.permissions for g in self.groups])))
+        self.last_refreshed_at = max(timestamp.utcnow(), self.last_seen_at
+                                     or timestamp.utcnow())
 
     async def _ldap_auth(self) -> bool:
         """Authenticate via LDAP"""
@@ -275,8 +277,7 @@ class User:
         async with self._application.postgres_connector(
                 on_error=self.on_postgres_error) as conn:
             result = await conn.execute(
-                self.SQL_UPDATE_USER_FROM_LDAP,
-                {
+                self.SQL_UPDATE_USER_FROM_LDAP, {
                     'username': self.username,
                     'user_type': 'ldap',
                     'external_id': self.external_id,
@@ -291,13 +292,12 @@ class User:
                 on_error=self.on_postgres_error) as conn:
             await conn.callproc(
                 'v1.maintain_group_membership_from_ldap_groups',
-                (self.username, ldap_groups),
-                'user-maintain-groups')
+                (self.username, ldap_groups), 'user-maintain-groups')
 
         # Update the groups attribute
         self.groups = await self._db_groups()
-        self.permissions = sorted(set(
-            chain.from_iterable([g.permissions for g in self.groups])))
+        self.permissions = sorted(
+            set(chain.from_iterable([g.permissions for g in self.groups])))
         self.last_refreshed_at = max(timestamp.utcnow(), self.last_seen_at)
 
     def _reset(self) -> None:
@@ -321,9 +321,9 @@ class User:
         LOGGER.debug('Authenticating with token: %s', self.token)
         async with self._application.postgres_connector(
                 on_error=self.on_postgres_error) as conn:
-            result = await conn.execute(
-                self.SQL_AUTHENTICATE_TOKEN, {'token': self.token},
-                'user-token-auth')
+            result = await conn.execute(self.SQL_AUTHENTICATE_TOKEN,
+                                        {'token': self.token},
+                                        'user-token-auth')
             if not result.row_count:
                 return False
             self._assign_values(result.row)

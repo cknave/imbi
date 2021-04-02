@@ -46,17 +46,17 @@ def require_permission(permission):
                             'javascript_url'))
                 LOGGER.info('%r does not have the "%s" permission',
                             self._current_user, permission)
-                raise problemdetails.Problem(
-                    status_code=403, title='Unauthorized')
+                raise problemdetails.Problem(status_code=403,
+                                             title='Unauthorized')
             return f(self, *args, **kwargs)
+
         return wrapped
+
     return _require_permission
 
 
-class RequestHandler(postgres.RequestHandlerMixin,
-                     mixins.ErrorLogger,
-                     problemdetails.ErrorWriter,
-                     mediatype.ContentMixin,
+class RequestHandler(postgres.RequestHandlerMixin, mixins.ErrorLogger,
+                     problemdetails.ErrorWriter, mediatype.ContentMixin,
                      web.RequestHandler):
     """Base RequestHandler class used for recipients and subscribers."""
 
@@ -65,9 +65,7 @@ class RequestHandler(postgres.RequestHandlerMixin,
     NAME = 'Base'
     ITEM_NAME = ''
 
-    def __init__(self,
-                 application,
-                 request: httputil.HTTPServerRequest,
+    def __init__(self, application, request: httputil.HTTPServerRequest,
                  **kwargs):
         super().__init__(application, request, **kwargs)
         self.logger = logging.getLogger(f'imbi.endpoints.{self.NAME}')
@@ -155,7 +153,8 @@ class RequestHandler(postgres.RequestHandlerMixin,
             return self.render(
                 'error.html',
                 javascript_url=self.application.settings.get('javascript_url'),
-                status_code=status_code, **kwargs)
+                status_code=status_code,
+                **kwargs)
         super().write_error(status_code, **kwargs)
 
     def _add_last_modified_header(self, value: datetime.datetime) -> None:
@@ -184,13 +183,11 @@ class RequestHandler(postgres.RequestHandlerMixin,
         """Adds the cache response headers for the object being returned."""
         self.add_header('Cache-Control', 'public, max-age={}'.format(ttl))
 
-    def _on_postgres_timing(self,
-                            metric_name: str,
-                            duration: float) -> None:
+    def _on_postgres_timing(self, metric_name: str, duration: float) -> None:
         """Invoked by sprockets-postgres after each query"""
-        self.application.loop.add_callback(
-            self.application.stats.add_duration,
-            'postgres.{}'.format(metric_name), duration)
+        self.application.loop.add_callback(self.application.stats.add_duration,
+                                           'postgres.{}'.format(metric_name),
+                                           duration)
 
     @property
     def _respond_with_html(self) -> bool:
@@ -205,7 +202,6 @@ class RequestHandler(postgres.RequestHandlerMixin,
 
 class AuthenticatedRequestHandler(RequestHandler):
     """RequestHandler base class for authenticated requests"""
-
     async def prepare(self) -> None:
         await super().prepare()
         if not self._current_user:
@@ -226,28 +222,32 @@ class ValidatingRequestHandler(AuthenticatedRequestHandler):
             self.application.validate_request(self.request)
         except DeserializeError as err:
             self.logger.warning('Request failed to deserialize: %s', err)
-            raise problemdetails.Problem(
-                status_code=400, title='Bad Request', detail=str(err))
+            raise problemdetails.Problem(status_code=400,
+                                         title='Bad Request',
+                                         detail=str(err))
         except InvalidSecurity as err:
             self.logger.debug('Invalid OpenAPI spec security: %s', err)
-            raise problemdetails.Problem(
-                status_code=500, title='OpenAPI security error',
-                detail=str(err))
+            raise problemdetails.Problem(status_code=500,
+                                         title='OpenAPI security error',
+                                         detail=str(err))
         except OperationNotFound as err:
-            raise problemdetails.Problem(
-                status_code=405, title='Method Not Allowed', detail=str(err))
+            raise problemdetails.Problem(status_code=405,
+                                         title='Method Not Allowed',
+                                         detail=str(err))
         except InvalidContentType as err:
-            raise problemdetails.Problem(
-                status_code=415, title='Unsupported Media Type',
-                detail=str(err))
+            raise problemdetails.Problem(status_code=415,
+                                         title='Unsupported Media Type',
+                                         detail=str(err))
         except PathNotFound as err:
             self.logger.error('OpenAPI Spec Error: %s', err)
-            raise problemdetails.Problem(
-                status_code=500, title='OpenAPI Spec Error', detail=str(err))
+            raise problemdetails.Problem(status_code=500,
+                                         title='OpenAPI Spec Error',
+                                         detail=str(err))
         except ValidateError as err:
             self.logger.warning('Request failed to validate: %s', err)
             raise problemdetails.Problem(
-                status_code=400, title='Bad Request',
+                status_code=400,
+                title='Bad Request',
                 detail='The request did not validate',
                 errors=[str(e).split('\n')[0] for e in err.schema_errors])
 
@@ -271,15 +271,15 @@ class CRUDRequestHandler(ValidatingRequestHandler):
     async def delete(self, *args, **kwargs):
         if self.DELETE_SQL is None:
             self.logger.debug('DELETE_SQL not defined')
-            raise problemdetails.Problem(
-                status_code=405, title='Not Implemented')
+            raise problemdetails.Problem(status_code=405,
+                                         title='Not Implemented')
         await self._delete(kwargs)
 
     async def get(self, *args, **kwargs):
         if self.GET_SQL is None:
             self.logger.debug('GET_SQL not defined')
-            raise problemdetails.Problem(
-                status_code=405, title='Not Implemented')
+            raise problemdetails.Problem(status_code=405,
+                                         title='Not Implemented')
         if self._respond_with_html:
             return self.render(
                 'index.html',
@@ -289,15 +289,15 @@ class CRUDRequestHandler(ValidatingRequestHandler):
     async def patch(self, *args, **kwargs):
         if self.PATCH_SQL is None:
             self.logger.debug('PATCH_SQL not defined')
-            raise problemdetails.Problem(
-                status_code=405, title='Not Implemented')
+            raise problemdetails.Problem(status_code=405,
+                                         title='Not Implemented')
         await self._patch(kwargs)
 
     async def post(self, *args, **kwargs):
         if self.POST_SQL is None:
             self.logger.debug('POST_SQL not defined')
-            raise problemdetails.Problem(
-                status_code=405, title='Not Implemented')
+            raise problemdetails.Problem(status_code=405,
+                                         title='Not Implemented')
         await self._post(kwargs)
 
     def send_response(self, value: typing.Union[dict, list]) -> None:
@@ -327,21 +327,21 @@ class CRUDRequestHandler(ValidatingRequestHandler):
         super().send_response(value)
 
     async def _delete(self, kwargs):
-        result = await self.postgres_execute(
-            self.DELETE_SQL, self._get_query_kwargs(kwargs),
-            'delete-{}'.format(self.NAME))
+        result = await self.postgres_execute(self.DELETE_SQL,
+                                             self._get_query_kwargs(kwargs),
+                                             'delete-{}'.format(self.NAME))
         if not result.row_count:
-            raise problemdetails.Problem(
-                status_code=404, title='Item not found')
+            raise problemdetails.Problem(status_code=404,
+                                         title='Item not found')
         self.set_status(204, reason='Item Deleted')
 
     async def _get(self, kwargs):
-        result = await self.postgres_execute(
-            self.GET_SQL, self._get_query_kwargs(kwargs),
-            'get-{}'.format(self.NAME))
+        result = await self.postgres_execute(self.GET_SQL,
+                                             self._get_query_kwargs(kwargs),
+                                             'get-{}'.format(self.NAME))
         if not result.row_count or not result.row:
-            raise problemdetails.Problem(
-                status_code=404, title='Item not found')
+            raise problemdetails.Problem(status_code=404,
+                                         title='Item not found')
         for key, value in result.row.items():
             if isinstance(value, uuid.UUID):
                 result.row[key] = str(value)
@@ -355,16 +355,18 @@ class CRUDRequestHandler(ValidatingRequestHandler):
     async def _patch(self, kwargs):
         patch_value = self.get_request_body()
 
-        result = await self.postgres_execute(
-            self.GET_SQL, self._get_query_kwargs(kwargs),
-            'get-{}'.format(self.NAME))
+        result = await self.postgres_execute(self.GET_SQL,
+                                             self._get_query_kwargs(kwargs),
+                                             'get-{}'.format(self.NAME))
         if not result.row_count:
-            raise problemdetails.Problem(
-                status_code=404, title='Item not found')
+            raise problemdetails.Problem(status_code=404,
+                                         title='Item not found')
 
         original = dict(result.row)
-        for key in {'created_at', 'created_by',
-                    'last_modified_at', 'last_modified_by'}:
+        for key in {
+                'created_at', 'created_by', 'last_modified_at',
+                'last_modified_by'
+        }:
             del original[key]
 
         for key, value in original.items():
@@ -376,8 +378,10 @@ class CRUDRequestHandler(ValidatingRequestHandler):
         updated = patch.apply(original)
 
         # Bail early if there are no changes
-        if not {k: original[k] for k in original
-                if k in updated and original[k] != updated[k]}:
+        if not {
+                k: original[k]
+                for k in original if k in updated and original[k] != updated[k]
+        }:
             self._add_self_link(self.request.path)
             self._add_link_header()
             return self.set_status(304)
@@ -389,12 +393,11 @@ class CRUDRequestHandler(ValidatingRequestHandler):
             updated['current_{}'.format(self.ID_KEY)] = kwargs[self.ID_KEY]
         updated['username'] = self._current_user.username
 
-        result = await self.postgres_execute(
-            self.PATCH_SQL, updated,
-            'patch-{}'.format(self.NAME))
+        result = await self.postgres_execute(self.PATCH_SQL, updated,
+                                             'patch-{}'.format(self.NAME))
         if not result.row_count:
-            raise problemdetails.Problem(
-                status_code=500, title='Failed to update record')
+            raise problemdetails.Problem(status_code=500,
+                                         title='Failed to update record')
 
         # Send the new record as a response
         await self._get(self._get_query_kwargs(updated))
@@ -416,12 +419,12 @@ class CRUDRequestHandler(ValidatingRequestHandler):
                 values[name] = self.DEFAULTS.get(name)
 
         values['username'] = self._current_user.username
-        result = await self.postgres_execute(
-            self.POST_SQL, values, 'post-{}'.format(self.NAME))
+        result = await self.postgres_execute(self.POST_SQL, values,
+                                             'post-{}'.format(self.NAME))
         if not result.row_count:
             self.logger.debug('No rows returned')
-            raise problemdetails.Problem(
-                status_code=500, title='Failed to create record')
+            raise problemdetails.Problem(status_code=500,
+                                         title='Failed to create record')
 
             # Return the record as if it were a GET
         await self._get(self._get_query_kwargs(result.row))
@@ -438,14 +441,14 @@ class CollectionRequestHandler(CRUDRequestHandler):
     TTL = 300
 
     async def get(self, *args, **kwargs):
-        result = await self.postgres_execute(
-            self.COLLECTION_SQL, kwargs,
-            metric_name='get-{}'.format(self.NAME))
+        result = await self.postgres_execute(self.COLLECTION_SQL,
+                                             kwargs,
+                                             metric_name='get-{}'.format(
+                                                 self.NAME))
         self.send_response(result.rows)
 
 
 class AdminCRUDRequestHandler(CRUDRequestHandler):
-
     @require_permission('admin')
     async def delete(self, *args, **kwargs):
         await super().delete(*args, **kwargs)

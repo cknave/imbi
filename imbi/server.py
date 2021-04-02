@@ -19,9 +19,8 @@ DEFAULT_LOG_CONFIG = {
     'version': 1,
     'formatters': {
         'verbose': {
-            'format':
-                '%(levelname) -10s %(asctime)s %(process)-6d '
-                '%(name) -20s %(message)s',
+            'format': '%(levelname) -10s %(asctime)s %(process)-6d '
+            '%(name) -20s %(message)s',
             'datefmt': '%Y-%m-%d %H:%M:%S'
         }
     },
@@ -57,8 +56,7 @@ def load_configuration(config: str, debug: bool) -> typing.Tuple[dict, dict]:
     """Load the configuration file and apply all of the default settings"""
     config_file = pathlib.Path(config)
     if not config_file.exists():
-        sys.stderr.write(
-            'Configuration file {} not found\n'.format(config))
+        sys.stderr.write('Configuration file {} not found\n'.format(config))
         sys.exit(1)
 
     with config_file.open('r') as handle:
@@ -117,12 +115,11 @@ def load_configuration(config: str, debug: bool) -> typing.Tuple[dict, dict]:
         'server_header': 'imbi/{}'.format(version),
         'session_duration': int(session.get('duration', '7')),
         'session_pool_size': session.get('pool_size', 10),
-        'session_redis_url': session.get(
-            'redis_url', 'redis://localhost:6379/0'),
+        'session_redis_url': session.get('redis_url',
+                                         'redis://localhost:6379/0'),
         'static_path': module_path / 'static',
         'stats_pool_size': stats.get('pool_size', 10),
-        'stats_redis_url': stats.get(
-            'redis_url', 'redis://localhost:6379/1'),
+        'stats_redis_url': stats.get('redis_url', 'redis://localhost:6379/1'),
         'template_loader': pkgfiles.TemplateLoader(debug=debug),
         'template_path': module_path / 'templates',
         'xheaders': http_settings.get('xheaders', True),
@@ -135,12 +132,13 @@ def load_configuration(config: str, debug: bool) -> typing.Tuple[dict, dict]:
 def _parse_cli_args() -> argparse.Namespace:
     """Create the CLI parser and parse the CLI arguments"""
     parser = argparse.ArgumentParser(
-        'Imbi',
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument(
-        '--debug', action='store_true', help='Enable debug mode')
+        'Imbi', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('--debug',
+                        action='store_true',
+                        help='Enable debug mode')
     parser.add_argument('-V', '--version', action='version', version=version)
-    parser.add_argument(
-        'config', metavar='CONFIG FILE', nargs=1,
-        help='Configuration File')
+    parser.add_argument('config',
+                        metavar='CONFIG FILE',
+                        nargs=1,
+                        help='Configuration File')
     return parser.parse_args()

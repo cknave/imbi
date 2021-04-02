@@ -10,7 +10,8 @@ class _RequestMixin:
     FIELDS = ['project_id', 'environment', 'url']
     TTL = 300
 
-    GET_SQL = re.sub(r'\s+', ' ', """\
+    GET_SQL = re.sub(
+        r'\s+', ' ', """\
         SELECT project_id,
                environment,
                created_at,
@@ -23,12 +24,12 @@ class _RequestMixin:
            AND environment = %(environment)s""")
 
 
-class CollectionRequestHandler(_RequestMixin,
-                               base.CollectionRequestHandler):
+class CollectionRequestHandler(_RequestMixin, base.CollectionRequestHandler):
 
     NAME = 'project-urls'
 
-    COLLECTION_SQL = re.sub(r'\s+', ' ', """\
+    COLLECTION_SQL = re.sub(
+        r'\s+', ' ', """\
         SELECT project_id,
                environment,
                created_at,
@@ -40,7 +41,8 @@ class CollectionRequestHandler(_RequestMixin,
          WHERE project_id = %(project_id)s
          ORDER BY environment""")
 
-    POST_SQL = re.sub(r'\s+', ' ', """\
+    POST_SQL = re.sub(
+        r'\s+', ' ', """\
         INSERT INTO v1.project_urls
                     (project_id, environment, created_by, url)
              VALUES (%(project_id)s, %(environment)s, %(username)s, %(url)s)
@@ -51,12 +53,14 @@ class RecordRequestHandler(_RequestMixin, base.CRUDRequestHandler):
 
     NAME = 'project-url'
 
-    DELETE_SQL = re.sub(r'\s+', ' ', """\
+    DELETE_SQL = re.sub(
+        r'\s+', ' ', """\
         DELETE FROM v1.project_urls
               WHERE project_id = %(project_id)s
                 AND environment = %(environment)s""")
 
-    PATCH_SQL = re.sub(r'\s+', ' ', """\
+    PATCH_SQL = re.sub(
+        r'\s+', ' ', """\
         UPDATE v1.project_urls
            SET url=%(url)s,
                last_modified_at=CURRENT_TIMESTAMP,

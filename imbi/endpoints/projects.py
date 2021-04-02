@@ -10,11 +10,14 @@ class _RequestHandlerMixin:
 
     ITEM_NAME = 'project'
     ID_KEY = ['id']
-    FIELDS = ['id', 'namespace_id', 'project_type_id', 'name', 'slug',
-              'description', 'environments', 'archived']
+    FIELDS = [
+        'id', 'namespace_id', 'project_type_id', 'name', 'slug', 'description',
+        'environments', 'archived'
+    ]
     TTL = 300
 
-    GET_SQL = re.sub(r'\s+', ' ', """\
+    GET_SQL = re.sub(
+        r'\s+', ' ', """\
         SELECT a.id,
                a.created_at,
                a.created_by,
@@ -39,7 +42,8 @@ class CollectionRequestHandler(_RequestHandlerMixin,
                                base.CollectionRequestHandler):
     NAME = 'projects'
     IS_COLLECTION = True
-    COLLECTION_SQL = re.sub(r'\s+', ' ', """\
+    COLLECTION_SQL = re.sub(
+        r'\s+', ' ', """\
         SELECT a.id,
                a.created_at,
                a.created_by,
@@ -63,7 +67,8 @@ class CollectionRequestHandler(_RequestHandlerMixin,
           JOIN v1.project_types AS c ON c.id = a.project_type_id
           {{WHERE}} {{ORDER_BY}} LIMIT %(limit)s OFFSET %(offset)s""")
 
-    COUNT_SQL = re.sub(r'\s+', ' ', """\
+    COUNT_SQL = re.sub(
+        r'\s+', ' ', """\
         SELECT count(a.*) AS records
           FROM v1.projects AS a
           JOIN v1.namespaces AS b ON b.id = a.namespace_id
@@ -87,7 +92,8 @@ class CollectionRequestHandler(_RequestHandlerMixin,
         r'(?:(?P<column>name|namespace|project_score|project_type) '
         r'(?P<direction>asc|desc))')
 
-    POST_SQL = re.sub(r'\s+', ' ', """\
+    POST_SQL = re.sub(
+        r'\s+', ' ', """\
         INSERT INTO v1.projects
                     (namespace_id, project_type_id, created_by,  "name", slug,
                      description, environments)
@@ -124,13 +130,15 @@ class CollectionRequestHandler(_RequestHandlerMixin,
             order_sql = ' ORDER BY {}'.format(', '.join(order_by_chunks))
         sql = sql.replace('{{ORDER_BY}}', order_sql)
 
-        count = await self.postgres_execute(
-            count_sql, kwargs, metric_name='count-{}'.format(self.NAME))
-        result = await self.postgres_execute(
-            sql, kwargs, metric_name='get-{}'.format(self.NAME))
-        self.send_response({
-            'rows': count.row['records'],
-            'data': result.rows})
+        count = await self.postgres_execute(count_sql,
+                                            kwargs,
+                                            metric_name='count-{}'.format(
+                                                self.NAME))
+        result = await self.postgres_execute(sql,
+                                             kwargs,
+                                             metric_name='get-{}'.format(
+                                                 self.NAME))
+        self.send_response({'rows': count.row['records'], 'data': result.rows})
 
 
 class RecordRequestHandler(_RequestHandlerMixin, base.CRUDRequestHandler):
@@ -139,7 +147,8 @@ class RecordRequestHandler(_RequestHandlerMixin, base.CRUDRequestHandler):
 
     DELETE_SQL = 'DELETE FROM v1.projects WHERE id=%(id)s'
 
-    GET_FULL_SQL = re.sub(r'\s+', ' ', """\
+    GET_FULL_SQL = re.sub(
+        r'\s+', ' ', """\
         SELECT a.id,
                a.created_at,
                a.created_by,
@@ -164,7 +173,8 @@ class RecordRequestHandler(_RequestHandlerMixin, base.CRUDRequestHandler):
           JOIN v1.project_types AS c ON c.id = a.project_type_id
          WHERE a.id=%(id)s""")
 
-    GET_FACTS_SQL = re.sub(r'\s+', ' ', """\
+    GET_FACTS_SQL = re.sub(
+        r'\s+', ' ', """\
         WITH project_type_id AS (SELECT project_type_id AS id
                                    FROM v1.projects
                                   WHERE id = %(id)s)
@@ -205,7 +215,8 @@ class RecordRequestHandler(_RequestHandlerMixin, base.CRUDRequestHandler):
          WHERE (SELECT id FROM project_type_id) = ANY(a.project_type_ids)
         ORDER BY a.name""")
 
-    GET_LINKS_SQL = re.sub(r'\s+', ' ', """\
+    GET_LINKS_SQL = re.sub(
+        r'\s+', ' ', """\
         SELECT a.link_type_id,
                b.link_type AS title,
                b.icon_class AS icon,
@@ -215,13 +226,15 @@ class RecordRequestHandler(_RequestHandlerMixin, base.CRUDRequestHandler):
          WHERE a.project_id=%(id)s
          ORDER BY b.link_type""")
 
-    GET_URLS_SQL = re.sub(r'\s+', ' ', """\
+    GET_URLS_SQL = re.sub(
+        r'\s+', ' ', """\
         SELECT environment, url
           FROM v1.project_urls
          WHERE project_id=%(id)s
          ORDER BY environment""")
 
-    PATCH_SQL = re.sub(r'\s+', ' ', """\
+    PATCH_SQL = re.sub(
+        r'\s+', ' ', """\
         UPDATE v1.projects
            SET namespace_id=%(namespace_id)s,
                project_type_id=%(project_type_id)s,
@@ -238,24 +251,25 @@ class RecordRequestHandler(_RequestHandlerMixin, base.CRUDRequestHandler):
         if self.get_argument('full', 'false') == 'true':
             query_args = self._get_query_kwargs(kwargs)
             project, facts, links, urls = await asyncio.gather(
-                self.postgres_execute(
-                    self.GET_FULL_SQL, query_args, 'get-{}'.format(self.NAME)),
-                self.postgres_execute(
-                    self.GET_FACTS_SQL, query_args, 'get-project-facts'),
-                self.postgres_execute(
-                    self.GET_LINKS_SQL, query_args, 'get-project-links'),
-                self.postgres_execute(
-                    self.GET_URLS_SQL, query_args, 'get-project-urls'))
+                self.postgres_execute(self.GET_FULL_SQL, query_args,
+                                      'get-{}'.format(self.NAME)),
+                self.postgres_execute(self.GET_FACTS_SQL, query_args,
+                                      'get-project-facts'),
+                self.postgres_execute(self.GET_LINKS_SQL, query_args,
+                                      'get-project-links'),
+                self.postgres_execute(self.GET_URLS_SQL, query_args,
+                                      'get-project-urls'))
 
             if not project.row_count or not project.row:
-                raise problemdetails.Problem(
-                    status_code=404, title='Item not found')
+                raise problemdetails.Problem(status_code=404,
+                                             title='Item not found')
 
             output = project.row
             output.update({
                 'facts': facts.rows,
                 'links': links.rows,
-                'urls': {row['environment']: row['url'] for row in urls.rows}
+                'urls': {row['environment']: row['url']
+                         for row in urls.rows}
             })
             self.send_response(output)
         else:

@@ -36,7 +36,8 @@ URLS = [
     web.url(r'^/permissions$', permissions.RequestHandler),
     web.url(r'^/project-fact-types$', fact_types.CollectionRequestHandler),
     web.url(r'^/project-fact-types/(?P<id>\d+)$',
-            fact_types.RecordRequestHandler, name='fact-type'),
+            fact_types.RecordRequestHandler,
+            name='fact-type'),
     web.url(r'^/project-fact-type-enums$',
             fact_type_enums.CollectionRequestHandler),
     web.url(r'^/project-fact-type-enums/(?P<id>\d+)$',
@@ -85,10 +86,11 @@ URLS = [
     web.url(r'^/projects/(?P<project_id>\d+)/urls$',
             project_urls.CollectionRequestHandler,
             name='project-urls'),
-    web.url(r'^/projects/(?P<project_id>\d+)/urls/'
-            r'(?P<environment>[\w_\-%\+]+)$',
-            project_urls.RecordRequestHandler,
-            name='project-url'),
+    web.url(
+        r'^/projects/(?P<project_id>\d+)/urls/'
+        r'(?P<environment>[\w_\-%\+]+)$',
+        project_urls.RecordRequestHandler,
+        name='project-url'),
     web.url(r'^/status$', status.RequestHandler),
     web.url(r'^/ui/login$', ui.LoginRequestHandler),
     web.url(r'^/ui/logout$', ui.LogoutRequestHandler),
